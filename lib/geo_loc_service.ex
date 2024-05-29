@@ -1,4 +1,6 @@
 defmodule GeoLocService do
+  require Logger
+
   @moduledoc """
 
   This service provides a way to import geo location data into a table called "geo_locations" and fetch geo locations by IP address.
@@ -71,13 +73,10 @@ defmodule GeoLocService do
   """
   @spec import(binary(), Keyword.t()) :: {:error, any()} | {:ok, binary()}
   def import(source, opts \\ []) when is_binary(source) do
-    with {:ok, _pid} <-
-           ImportServer.start_link(
-             source: source,
-             error_file_path: error_file_path!(opts),
-             repo: repo!(opts)
-           ) do
-      {:ok, "Import started."}
+    with {:ok, state_report} <-
+           ImportServer.import(source, repo: repo!(opts), error_file_path: error_file_path!(opts)) do
+      Logger.info(state_report)
+      {:ok, "Done."}
     else
       {:error, reason} -> {:error, reason}
     end

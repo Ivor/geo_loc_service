@@ -1,10 +1,11 @@
 defmodule GeoLocService.Config do
   def repo! do
-    Application.fetch_env!(:geo_loc_service, :repo)
+    Application.get_env(:geo_loc_service, :repo) || raise("repo not configured")
   end
 
   def error_file_path! do
-    Application.fetch_env!(:geo_loc_service, :error_file_path)
+    Application.get_env(:geo_loc_service, :error_file_path) ||
+      raise "error_file_path not configured"
   end
 
   def countries do

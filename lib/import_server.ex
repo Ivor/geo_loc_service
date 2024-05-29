@@ -1,4 +1,6 @@
 defmodule GeoLocService.ImportServer do
+  require Logger
+
   @moduledoc """
   The ImportServer GenServer.
 
@@ -15,6 +17,8 @@ defmodule GeoLocService.ImportServer do
   alias GeoLocService.ErrorHelpers
   alias GeoLocService.ImportServer.State
 
+  @log_update_delay 5000
+
   defmodule State do
     @moduledoc """
     The state of the ImportServer GenServer.
@@ -26,6 +30,7 @@ defmodule GeoLocService.ImportServer do
     * `start_time` - the time the import started
     * `source` - the source of the import
     * `repo` - the Ecto repo
+    * `caller_pid` - the pid of the caller
     * `accepted` - the number of accepted rows
     * `rejected` - the number of rejected rows
     """
@@ -36,6 +41,7 @@ defmodule GeoLocService.ImportServer do
       :start_time,
       :source,
       :repo,
+      :caller_pid,
       accepted: 0,
       rejected: 0
     ]
@@ -53,7 +59,7 @@ defmodule GeoLocService.ImportServer do
     error_file_path = Keyword.fetch!(opts, :error_file_path)
     repo = Keyword.fetch!(opts, :repo)
 
-    start_time = System.monotonic_time()
+    start_time = System.monotonic_time(:millisecond)
 
     {:ok, error_file} = File.open(error_file_path, [:write, :utf8])
 
@@ -65,16 +71,32 @@ defmodule GeoLocService.ImportServer do
       repo: repo
     }
 
-    {:ok, state, {:continue, :import}}
+    {:ok, state}
+  end
+
+  def import(source, opts) do
+    with {:ok, _pid} <-
+           __MODULE__.start_link(
+             source: source,
+             error_file_path: opts[:error_file_path],
+             repo: opts[:repo]
+           ) do
+      GenServer.call(via_tuple(source), :import, :infinity)
+    else
+      {:error, reason} -> {:error, reason}
+    end
   end
 
   @impl true
-  def handle_continue(:import, state) do
+  def handle_call(:import, from, state) do
+    Logger.info("Import started for #{state.source}")
     server_pid = self()
+
+    queue_update()
 
     Task.async(Import, :run, [state.source, [parent_pid: server_pid, repo: state.repo]])
 
-    {:noreply, state}
+    {:noreply, %{state | caller_pid: from}}
   end
 
   @impl true
@@ -94,9 +116,18 @@ defmodule GeoLocService.ImportServer do
   def handle_info(:done, state) do
     File.close(state.error_log_file)
 
-    print_state(state)
+    GenServer.reply(state.caller_pid, {:ok, state_report(state)})
 
     {:stop, :normal, state}
+  end
+
+  def handle_info(:log_state, state) do
+    Logger.info("Update: #{state.accepted + state.rejected} rows processed.")
+    Logger.info("Elapsed time: #{System.monotonic_time(:millisecond) - state.start_time} ms")
+
+    queue_update()
+
+    {:noreply, state}
   end
 
   defp write_to_file(file, changeset_or_message, index) do
@@ -117,15 +148,19 @@ defmodule GeoLocService.ImportServer do
     Map.update!(state, key, &(&1 + 1))
   end
 
-  def print_state(state) do
-    IO.puts(~s"""
-    Elapsed time: #{System.monotonic_time() - state.start_time} ms
+  defp state_report(state) do
+    ~s"""
+    Elapsed time: #{System.monotonic_time(:millisecond) - state.start_time} ms
     Accepted: #{state.accepted}
     Rejected: #{state.rejected} (#{state.rejected / (state.accepted + state.rejected) * 100}% of total)
     Total: #{state.accepted + state.rejected}
 
     Errors written to: #{state.error_file_path}
-    """)
+    """
+  end
+
+  defp queue_update() do
+    Process.send_after(self(), :log_state, @log_update_delay)
   end
 
   def via_tuple(source) do
