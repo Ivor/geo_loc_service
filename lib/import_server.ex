@@ -121,7 +121,7 @@ defmodule GeoLocService.ImportServer do
     IO.puts(~s"""
     Elapsed time: #{System.monotonic_time() - state.start_time} ms
     Accepted: #{state.accepted}
-    Rejected: #{state.rejected}
+    Rejected: #{state.rejected} (#{state.rejected / (state.accepted + state.rejected) * 100}% of total)
     Total: #{state.accepted + state.rejected}
 
     Errors written to: #{state.error_file_path}
