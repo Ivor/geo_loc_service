@@ -29,7 +29,13 @@ defmodule GeoLocService.MixProject do
       {:nimble_csv, "~> 1.1"},
       {:req, "~> 0.4.0"},
       {:ecto, "~> 3.10"},
-      {:bypass, "~> 2.1", only: :test}
+      {:bypass, "~> 2.1", only: :test},
+      {:enquirer,
+       ref: "22ad2a8a91f896d2ae197d4fab1bd8ef84ebd6bc",
+       github: "glasnoster/enquirer",
+       only: [:dev],
+       override: true},
+      {:eliver, "~> 2.0.0", only: :dev}
     ]
   end
 end
