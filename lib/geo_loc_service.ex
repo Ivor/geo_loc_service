@@ -69,8 +69,8 @@ defmodule GeoLocService do
   This function returns immediately with `{:ok, "Import started."}` if the import was started successfully.
   If the import could not be started, it returns `{:error, reason}`.
   """
-  @spec import(binary(), keyword()) :: {:error, any()} | {:ok, binary()}
-  def import(source, opts) when is_binary(source) do
+  @spec import(binary(), Keyword.t()) :: {:error, any()} | {:ok, binary()}
+  def import(source, opts \\ []) when is_binary(source) do
     with {:ok, _pid} <-
            ImportServer.start_link(
              source: source,
