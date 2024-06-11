@@ -68,7 +68,7 @@ defmodule GeoLocService do
 
   but can also optionally be passed as options to this function.
 
-  This function returns immediately with `{:ok, "Import started."}` if the import was started successfully.
+  This function returns `{:ok, "Done."}` if the import was completed successfully.
   If the import could not be started, it returns `{:error, reason}`.
   """
   @spec import(binary(), Keyword.t()) :: {:error, any()} | {:ok, binary()}
