@@ -37,7 +37,7 @@ defmodule GeoLocService.GeoLocationTest do
       assert changeset.valid?
     end
 
-    test "validates that the rest of the fields are required" do
+    test "validates the required fields" do
       [:ip_address, :country_code, :latitude, :longitude]
       |> Enum.each(fn field ->
         attrs = Map.delete(@valid_attrs, field)
