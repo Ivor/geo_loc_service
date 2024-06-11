@@ -54,7 +54,7 @@ config :geo_loc_service, error_file_path: "/path/to/error_file.txt"
 To use the library, add it as a dependency in your mix.exs file:
 
 ```elixir
-{:geo_loc_service, git: "TODO"}
+{:geo_loc_service, git: "https://github.com/Ivor/geo_loc_service.git", tag: "0.1.0"}
 ```
 
 Then run `mix deps.get` to install the dependency.
